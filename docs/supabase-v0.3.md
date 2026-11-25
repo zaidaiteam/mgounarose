@@ -4,7 +4,7 @@
 
 V0.3 has two separate entry points. `/demo/` is the offline-capable V0.2-style PWA with browser-local fictional data. `/staff/` is an opt-in, authenticated, fixture-only application backed by Supabase Auth, PostgreSQL and private Storage. Its server rendering and mutations do not use demo state. Keep `ROSE_STAFF_ENABLED=false` on any origin until review and worker retirement are complete.
 
-The reference project is `fbfgdbeiitmfotydtxgp` in Paris. Read-only catalog inspection returned 16 visible base tables in `rose_care`, compared with the 18 stated in the brief. All 16 had RLS enabled, no policies in that schema were reported, and the schema granted existing access to its owner and `service_role`. The existing `rose-care-guides` bucket was private. The inspection did not read rows from business tables or storage objects. The migration targets the observed tables and adds `employee_invites`. Reconcile the table-count discrepancy with the owner before applying it to an existing project.
+The reference project is `fbfgdbeiitmfotydtxgp` in Paris. A subsequent privileged read-only catalog inspection confirmed all 18 original base tables in `rose_care`, with RLS enabled on all 18 and no direct SELECT grants to anon or authenticated. The earlier count of 16 was incomplete. The existing `rose-care-guides` bucket was private. The inspection did not read rows from business tables or storage objects. The migration targets the existing tables and adds `employee_invites`, for an expected total of 19. Before remote application, match the fixture numeric(12,2) precision for orders.total, orders.shipping, order_items.unit_price and variants.price, verify all constraints and grants, and pass actual disposable Supabase Auth and Storage tests.
 
 ## Environment
 
