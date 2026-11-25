@@ -405,8 +405,171 @@ test(
       const [events] =
         await pg`select count(*)::int as count from rose_care.order_events where order_id=${order}::uuid`;
       assert.equal(events.count, 1);
+      const assign = (logistics_id: string) =>
+        pg.begin(async (tx) => {
+          await tx`set local role rose_care_app`;
+          return tx`select rose_care.staff_command(${user(7)}::uuid,${session(7)}::uuid,'order.assign',${pg.json({ id: secondOrder, version: 1, logistics_id })})`;
+        });
+      const competing = await Promise.allSettled([assign(user(5)), assign("")]);
+      assert.equal(
+        competing.filter((item) => item.status === "fulfilled").length,
+        1,
+      );
+      assert.equal(
+        competing.find((item) => item.status === "rejected")?.reason.code,
+        "40001",
+      );
+      const [assigned] =
+        await pg`select version from rose_care.orders where id=${secondOrder}::uuid`;
+      assert.equal(assigned.version, 2);
     } finally {
       await pg.end();
     }
   },
 );
+
+test("verified catalog constraints, indexes, grants and all private function privileges survive migration", async () => {
+  const baseline: {
+    relname: string;
+    columns: string[];
+    constraints: string[];
+    indexes: string[];
+    acl: string;
+  }[] = JSON.parse(await fixture("./fixtures/rose-catalog.json"));
+  assert.equal(baseline.length, 18);
+  const actual = await db.query<{
+    name: string;
+    columns: string[];
+    constraints: string[];
+    indexes: string[];
+    rls: boolean;
+    no_browsers: boolean;
+    service_select: boolean;
+    service_insert: boolean;
+    service_update: boolean;
+  }>(`
+    select c.relname as name,c.relrowsecurity as rls,
+      array(select attname||':'||format_type(atttypid,atttypmod) from pg_attribute where attrelid=c.oid and attnum>0 and not attisdropped) columns,
+      array(select conname||':'||pg_get_constraintdef(oid) from pg_constraint where conrelid=c.oid) constraints,
+      array(select indexdef from pg_indexes where schemaname='rose_care' and tablename=c.relname) indexes,
+      not exists(select 1 from unnest(array['anon','authenticated','rose_care_app']) a(role)
+        where has_table_privilege(a.role,c.oid,'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER')) no_browsers,
+      has_table_privilege('service_role',c.oid,'SELECT') service_select,
+      has_table_privilege('service_role',c.oid,'INSERT') service_insert,
+      has_table_privilege('service_role',c.oid,'UPDATE') service_update
+    from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='rose_care' and c.relkind='r'`);
+  assert.equal(actual.rows.length, 19);
+  assert.ok(actual.rows.every((row) => row.rls && row.no_browsers));
+  for (const row of baseline) {
+    const next = actual.rows.find((item) => item.name === row.relname)!;
+    for (const column of row.columns)
+      assert.ok(next.columns.includes(column), row.relname + " " + column);
+    for (const rule of row.constraints)
+      if (!rule.startsWith("orders_status_check:"))
+        assert.ok(next.constraints.includes(rule), rule);
+    for (const index of row.indexes)
+      assert.ok(next.indexes.includes(index), index);
+    const appendOnly = ["audit_logs", "order_events"].includes(row.relname);
+    assert.equal(next.service_select, !appendOnly);
+    assert.equal(next.service_insert, !appendOnly);
+    assert.equal(
+      next.service_update,
+      !appendOnly && row.acl.includes("service_role=arw"),
+    );
+  }
+  const funcs = await db.query<{
+    name: string;
+    app: boolean;
+    browsers: boolean;
+    open: boolean;
+  }>(`
+    select p.proname name,has_function_privilege('rose_care_app',p.oid,'EXECUTE') app,
+      exists(select 1 from unnest(array['anon','authenticated','service_role']) a(role)
+        where has_function_privilege(a.role,p.oid,'EXECUTE')) browsers,
+      exists(select 1 from aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+        where acl.grantee=0 and acl.privilege_type='EXECUTE') open
+      from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='rose_care'`);
+  assert.ok(funcs.rows.every((f) => !f.browsers && !f.open));
+  assert.deepEqual(
+    funcs.rows
+      .filter((f) => f.app)
+      .map((f) => f.name)
+      .sort(),
+    [
+      "staff_command",
+      "staff_guide_path",
+      "staff_identity",
+      "staff_redeem",
+      "staff_workspace",
+    ],
+  );
+});
+
+test("numeric(12,2) accepts the maximum exact COD and rejects overflow without writes", async () => {
+  const list = (await workspace(1)).products.flatMap((item) => item.variants);
+  const lines = [
+    ...list
+      .slice(0, 10)
+      .map((item) => ({
+        variant_id: item.id,
+        quantity: 999,
+        unit_price: "999999",
+      })),
+    { variant_id: list[10].id, quantity: 999, unit_price: "10000" },
+    { variant_id: list[11].id, quantity: 1, unit_price: "19989.99" },
+  ];
+  const payload = {
+    customer_id: atlas,
+    address_id: atlasAddress,
+    lines,
+    shipping: "0.00",
+  };
+  const created = (await command(1, "order.create", payload)).rows[0].id;
+  const view = await workspace(1);
+  assert.equal(
+    view.orders.find((item) => item.id === created)?.total,
+    9999999999.99,
+  );
+  await assert.rejects(
+    command(1, "order.create", { ...payload, shipping: "0.01" }),
+    { code: "22003" },
+  );
+  await assert.rejects(
+    command(1, "order.create", { ...payload, shipping: "1000000.00" }),
+    { code: "22023" },
+  );
+  assert.equal((await workspace(1)).orders.length, view.orders.length);
+  const result = await db.query(
+    "select 9999999999.99::numeric(12,2)::text as amount",
+  );
+  assert.deepEqual(result.rows, [{ amount: "9999999999.99" }]);
+  await assert.rejects(db.query("select 10000000000.00::numeric(12,2)"), {
+    code: "22003",
+  });
+  await assert.rejects(db.query("select 9999999999.995::numeric(12,2)"), {
+    code: "22003",
+  });
+});
+
+test("unmarked orders stay hidden even when their customer is a fixture", async () => {
+  await db.exec("reset role");
+  try {
+    await db.query(
+      "insert into rose_care.orders(id,customer_id,advisor_id,total) values($1,$2,$3,12)",
+      ["51000003-0000-4000-8000-000000000003", atlas, user(2)],
+    );
+  } finally {
+    await db.exec("set role rose_care_app");
+  }
+  assert.ok(
+    (await workspace(1)).orders.every((item) => item.reference !== "51000003"),
+  );
+  await assert.rejects(
+    command(1, "order.transition", {
+      id: "51000003-0000-4000-8000-000000000003",
+      version: 1,
+      status: "confirmed",
+    }),
+    deny,
+  );
+});

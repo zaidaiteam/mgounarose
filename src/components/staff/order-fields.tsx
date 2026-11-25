@@ -85,7 +85,7 @@ export function OrderFields({
                 name="unit_price"
                 type="number"
                 min="0"
-                max="999999"
+                max="999999.99"
                 step="0.01"
               />
             </Field>
@@ -122,7 +122,7 @@ export function OrderFields({
               name="shipping"
               type="number"
               min="0"
-              max="999999"
+              max="999999.99"
               step="0.01"
               defaultValue="0"
             />
@@ -132,7 +132,7 @@ export function OrderFields({
               name="discount"
               type="number"
               min="0"
-              max="999999"
+              max="999999.99"
               step="0.01"
               defaultValue="0"
             />

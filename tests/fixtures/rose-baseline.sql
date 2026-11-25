@@ -14,6 +14,7 @@ grant usage on schema storage to authenticated;
 grant select on storage.objects to authenticated;
 create schema rose_care;
 revoke all on schema rose_care from public, anon, authenticated;
+grant usage on schema rose_care to service_role;
 
 create table rose_care.addresses (
   id uuid default gen_random_uuid() not null,
@@ -119,7 +120,7 @@ create table rose_care.order_items (
   variant_id uuid,
   title text not null,
   quantity integer not null,
-  unit_price numeric not null
+  unit_price numeric(12,2) not null
 );
 create table rose_care.orders (
   id uuid default gen_random_uuid() not null,
@@ -128,8 +129,8 @@ create table rose_care.orders (
   advisor_id uuid,
   status text default 'new'::text not null,
   currency text default 'MAD'::text not null,
-  total numeric not null,
-  shipping numeric default 0 not null,
+  total numeric(12,2) not null,
+  shipping numeric(12,2) default 0 not null,
   created_at timestamptz default now() not null
 );
 create table rose_care.preferences (
@@ -160,82 +161,104 @@ create table rose_care.variants (
   shopify_id text,
   sku text,
   title text not null,
-  price numeric,
+  price numeric(12,2),
   currency text default 'MAD'::text not null
 );
-alter table rose_care.addresses add PRIMARY KEY (id);
-alter table rose_care.audit_logs add PRIMARY KEY (id);
-alter table rose_care.bundles add PRIMARY KEY (bundle_variant_id, component_variant_id);
-alter table rose_care.bundles add CHECK ((quantity > 0));
-alter table rose_care.care_guides add PRIMARY KEY (id);
-alter table rose_care.complaints add PRIMARY KEY (id);
-alter table rose_care.conversations add PRIMARY KEY (id);
-alter table rose_care.customers add PRIMARY KEY (id);
-alter table rose_care.customers add UNIQUE (shopify_id);
-alter table rose_care.employees add PRIMARY KEY (id);
-alter table rose_care.employees add CHECK ((role = ANY (ARRAY['admin'::text, 'manager'::text, 'advisor'::text, 'logistics'::text, 'preparation'::text])));
-alter table rose_care.faqs add PRIMARY KEY (id);
-alter table rose_care.message_templates add CHECK ((language = ANY (ARRAY['fr'::text, 'ar'::text, 'darija'::text, 'en'::text])));
-alter table rose_care.message_templates add PRIMARY KEY (id);
-alter table rose_care.messages add CHECK ((direction = ANY (ARRAY['inbound'::text, 'outbound'::text])));
-alter table rose_care.messages add PRIMARY KEY (id);
-alter table rose_care.order_events add PRIMARY KEY (id);
-alter table rose_care.order_items add PRIMARY KEY (id);
-alter table rose_care.order_items add CHECK ((quantity > 0));
-alter table rose_care.order_items add CHECK ((unit_price >= (0)::numeric));
-alter table rose_care.orders add PRIMARY KEY (id);
-alter table rose_care.orders add CHECK ((shipping >= (0)::numeric));
-alter table rose_care.orders add UNIQUE (shopify_id);
-alter table rose_care.orders add CHECK ((status = ANY (ARRAY['new'::text, 'contacting'::text, 'callback'::text, 'confirmed'::text, 'preparing'::text, 'dispatched'::text, 'delivered'::text, 'failed_delivery'::text, 'cancelled'::text, 'returned'::text])));
-alter table rose_care.orders add CHECK ((total >= (0)::numeric));
-alter table rose_care.preferences add PRIMARY KEY (customer_id);
-alter table rose_care.products add PRIMARY KEY (id);
-alter table rose_care.products add UNIQUE (shopify_id);
-alter table rose_care.tasks add PRIMARY KEY (id);
-alter table rose_care.variants add PRIMARY KEY (id);
-alter table rose_care.variants add CHECK ((price >= (0)::numeric));
-alter table rose_care.variants add UNIQUE (shopify_id);
-alter table rose_care.addresses add FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id);
+
+alter table rose_care.addresses add constraint addresses_pkey PRIMARY KEY (id);
+alter table rose_care.audit_logs add constraint audit_logs_pkey PRIMARY KEY (id);
+alter table rose_care.bundles add constraint bundles_pkey PRIMARY KEY (bundle_variant_id, component_variant_id);
+alter table rose_care.bundles add constraint bundles_quantity_check CHECK ((quantity > 0));
+alter table rose_care.care_guides add constraint care_guides_pkey PRIMARY KEY (id);
+alter table rose_care.complaints add constraint complaints_pkey PRIMARY KEY (id);
+alter table rose_care.conversations add constraint conversations_pkey PRIMARY KEY (id);
+alter table rose_care.customers add constraint customers_pkey PRIMARY KEY (id);
+alter table rose_care.customers add constraint customers_shopify_id_key UNIQUE (shopify_id);
+alter table rose_care.employees add constraint employees_pkey PRIMARY KEY (id);
+alter table rose_care.employees add constraint employees_role_check CHECK ((role = ANY (ARRAY['admin'::text, 'manager'::text, 'advisor'::text, 'logistics'::text, 'preparation'::text])));
+alter table rose_care.faqs add constraint faqs_pkey PRIMARY KEY (id);
+alter table rose_care.message_templates add constraint message_templates_language_check CHECK ((language = ANY (ARRAY['fr'::text, 'ar'::text, 'darija'::text, 'en'::text])));
+alter table rose_care.message_templates add constraint message_templates_pkey PRIMARY KEY (id);
+alter table rose_care.messages add constraint messages_direction_check CHECK ((direction = ANY (ARRAY['inbound'::text, 'outbound'::text])));
+alter table rose_care.messages add constraint messages_pkey PRIMARY KEY (id);
+alter table rose_care.order_events add constraint order_events_pkey PRIMARY KEY (id);
+alter table rose_care.order_items add constraint order_items_pkey PRIMARY KEY (id);
+alter table rose_care.order_items add constraint order_items_quantity_check CHECK ((quantity > 0));
+alter table rose_care.order_items add constraint order_items_unit_price_check CHECK ((unit_price >= (0)::numeric));
+alter table rose_care.orders add constraint orders_pkey PRIMARY KEY (id);
+alter table rose_care.orders add constraint orders_shipping_check CHECK ((shipping >= (0)::numeric));
+alter table rose_care.orders add constraint orders_shopify_id_key UNIQUE (shopify_id);
+alter table rose_care.orders add constraint orders_status_check CHECK ((status = ANY (ARRAY['new'::text, 'contacting'::text, 'callback'::text, 'confirmed'::text, 'preparing'::text, 'dispatched'::text, 'delivered'::text, 'failed_delivery'::text, 'cancelled'::text, 'returned'::text])));
+alter table rose_care.orders add constraint orders_total_check CHECK ((total >= (0)::numeric));
+alter table rose_care.preferences add constraint preferences_pkey PRIMARY KEY (customer_id);
+alter table rose_care.products add constraint products_pkey PRIMARY KEY (id);
+alter table rose_care.products add constraint products_shopify_id_key UNIQUE (shopify_id);
+alter table rose_care.tasks add constraint tasks_pkey PRIMARY KEY (id);
+alter table rose_care.variants add constraint variants_pkey PRIMARY KEY (id);
+alter table rose_care.variants add constraint variants_price_check CHECK ((price >= (0)::numeric));
+alter table rose_care.variants add constraint variants_shopify_id_key UNIQUE (shopify_id);
+alter table rose_care.addresses add constraint addresses_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id);
+alter table rose_care.audit_logs add constraint audit_logs_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES rose_care.employees(id);
+alter table rose_care.bundles add constraint bundles_bundle_variant_id_fkey FOREIGN KEY (bundle_variant_id) REFERENCES rose_care.variants(id);
+alter table rose_care.bundles add constraint bundles_component_variant_id_fkey FOREIGN KEY (component_variant_id) REFERENCES rose_care.variants(id);
+alter table rose_care.care_guides add constraint care_guides_product_id_fkey FOREIGN KEY (product_id) REFERENCES rose_care.products(id);
+alter table rose_care.complaints add constraint complaints_assignee_id_fkey FOREIGN KEY (assignee_id) REFERENCES rose_care.employees(id);
+alter table rose_care.complaints add constraint complaints_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id);
+alter table rose_care.complaints add constraint complaints_order_id_fkey FOREIGN KEY (order_id) REFERENCES rose_care.orders(id);
+alter table rose_care.conversations add constraint conversations_advisor_id_fkey FOREIGN KEY (advisor_id) REFERENCES rose_care.employees(id);
+alter table rose_care.conversations add constraint conversations_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id);
+alter table rose_care.customers add constraint customers_advisor_id_fkey FOREIGN KEY (advisor_id) REFERENCES rose_care.employees(id);
+alter table rose_care.employees add constraint employees_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id);
+alter table rose_care.faqs add constraint faqs_product_id_fkey FOREIGN KEY (product_id) REFERENCES rose_care.products(id);
+alter table rose_care.messages add constraint messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES rose_care.conversations(id);
+alter table rose_care.messages add constraint messages_template_id_fkey FOREIGN KEY (template_id) REFERENCES rose_care.message_templates(id);
+alter table rose_care.order_events add constraint order_events_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES rose_care.employees(id);
+alter table rose_care.order_events add constraint order_events_order_id_fkey FOREIGN KEY (order_id) REFERENCES rose_care.orders(id);
+alter table rose_care.order_items add constraint order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES rose_care.orders(id);
+alter table rose_care.order_items add constraint order_items_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES rose_care.variants(id);
+alter table rose_care.orders add constraint orders_advisor_id_fkey FOREIGN KEY (advisor_id) REFERENCES rose_care.employees(id);
+alter table rose_care.orders add constraint orders_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id);
+alter table rose_care.preferences add constraint preferences_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id);
+alter table rose_care.tasks add constraint tasks_assignee_id_fkey FOREIGN KEY (assignee_id) REFERENCES rose_care.employees(id);
+alter table rose_care.tasks add constraint tasks_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id);
+alter table rose_care.tasks add constraint tasks_order_id_fkey FOREIGN KEY (order_id) REFERENCES rose_care.orders(id);
+alter table rose_care.variants add constraint variants_product_id_fkey FOREIGN KEY (product_id) REFERENCES rose_care.products(id);
 alter table rose_care.addresses enable row level security;
-alter table rose_care.audit_logs add FOREIGN KEY (actor_id) REFERENCES rose_care.employees(id);
+grant select, insert, update on rose_care.addresses to service_role;
 alter table rose_care.audit_logs enable row level security;
-alter table rose_care.bundles add FOREIGN KEY (bundle_variant_id) REFERENCES rose_care.variants(id);
-alter table rose_care.bundles add FOREIGN KEY (component_variant_id) REFERENCES rose_care.variants(id);
+grant select, insert on rose_care.audit_logs to service_role;
 alter table rose_care.bundles enable row level security;
-alter table rose_care.care_guides add FOREIGN KEY (product_id) REFERENCES rose_care.products(id);
+grant select, insert, update on rose_care.bundles to service_role;
 alter table rose_care.care_guides enable row level security;
-alter table rose_care.complaints add FOREIGN KEY (assignee_id) REFERENCES rose_care.employees(id);
-alter table rose_care.complaints add FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id);
-alter table rose_care.complaints add FOREIGN KEY (order_id) REFERENCES rose_care.orders(id);
+grant select, insert, update on rose_care.care_guides to service_role;
 alter table rose_care.complaints enable row level security;
-alter table rose_care.conversations add FOREIGN KEY (advisor_id) REFERENCES rose_care.employees(id);
-alter table rose_care.conversations add FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id);
+grant select, insert, update on rose_care.complaints to service_role;
 alter table rose_care.conversations enable row level security;
-alter table rose_care.customers add FOREIGN KEY (advisor_id) REFERENCES rose_care.employees(id);
+grant select, insert, update on rose_care.conversations to service_role;
 alter table rose_care.customers enable row level security;
-alter table rose_care.employees add FOREIGN KEY (id) REFERENCES auth.users(id);
+grant select, insert, update on rose_care.customers to service_role;
 alter table rose_care.employees enable row level security;
-alter table rose_care.faqs add FOREIGN KEY (product_id) REFERENCES rose_care.products(id);
+grant select, insert, update on rose_care.employees to service_role;
 alter table rose_care.faqs enable row level security;
+grant select, insert, update on rose_care.faqs to service_role;
 alter table rose_care.message_templates enable row level security;
-alter table rose_care.messages add FOREIGN KEY (conversation_id) REFERENCES rose_care.conversations(id);
-alter table rose_care.messages add FOREIGN KEY (template_id) REFERENCES rose_care.message_templates(id);
+grant select, insert, update on rose_care.message_templates to service_role;
 alter table rose_care.messages enable row level security;
-alter table rose_care.order_events add FOREIGN KEY (actor_id) REFERENCES rose_care.employees(id);
-alter table rose_care.order_events add FOREIGN KEY (order_id) REFERENCES rose_care.orders(id);
+grant select, insert, update on rose_care.messages to service_role;
 alter table rose_care.order_events enable row level security;
-alter table rose_care.order_items add FOREIGN KEY (order_id) REFERENCES rose_care.orders(id);
-alter table rose_care.order_items add FOREIGN KEY (variant_id) REFERENCES rose_care.variants(id);
+grant select, insert on rose_care.order_events to service_role;
 alter table rose_care.order_items enable row level security;
-alter table rose_care.orders add FOREIGN KEY (advisor_id) REFERENCES rose_care.employees(id);
-alter table rose_care.orders add FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id);
+grant select, insert, update on rose_care.order_items to service_role;
+CREATE INDEX orders_advisor_idx ON rose_care.orders USING btree (advisor_id, status);
+CREATE INDEX orders_customer_idx ON rose_care.orders USING btree (customer_id);
 alter table rose_care.orders enable row level security;
-alter table rose_care.preferences add FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id);
+grant select, insert, update on rose_care.orders to service_role;
 alter table rose_care.preferences enable row level security;
+grant select, insert, update on rose_care.preferences to service_role;
 alter table rose_care.products enable row level security;
-alter table rose_care.tasks add FOREIGN KEY (assignee_id) REFERENCES rose_care.employees(id);
-alter table rose_care.tasks add FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id);
-alter table rose_care.tasks add FOREIGN KEY (order_id) REFERENCES rose_care.orders(id);
+grant select, insert, update on rose_care.products to service_role;
+CREATE INDEX tasks_assignee_idx ON rose_care.tasks USING btree (assignee_id, due_at);
 alter table rose_care.tasks enable row level security;
-alter table rose_care.variants add FOREIGN KEY (product_id) REFERENCES rose_care.products(id);
+grant select, insert, update on rose_care.tasks to service_role;
 alter table rose_care.variants enable row level security;
+grant select, insert, update on rose_care.variants to service_role;

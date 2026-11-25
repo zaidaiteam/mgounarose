@@ -77,7 +77,7 @@ export function StaffCatalog({
                       name="price"
                       type="number"
                       min="0"
-                      max="999999"
+                      max="999999.99"
                       step="0.01"
                       defaultValue={variant.price ?? ""}
                     />

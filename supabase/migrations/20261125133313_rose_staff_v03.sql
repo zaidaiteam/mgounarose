@@ -12,6 +12,7 @@ alter table rose_care.customers
   add column title text check (title in ('Mme', 'M.')),
   add column notes text[] not null default '{}';
 alter table rose_care.orders
+  add column staff_fixture boolean not null default false,
   add column version integer not null default 1 check (version > 0),
   add column discount numeric(12,2) not null default 0 check (discount >= 0),
   add column delivery_phone text,
@@ -68,9 +69,9 @@ create index if not exists rose_v03_guide_path on rose_care.care_guides(storage_
 create unique index if not exists rose_v03_template_identity on rose_care.message_templates(category,language) where staff_fixture;
 
 create function rose_care.staff_session(p_user uuid, p_session uuid) returns boolean
-language sql stable set search_path = '' as $$
+language sql volatile set search_path = '' as $$
   select exists (select 1 from auth.sessions s where s.id=p_session and s.user_id=p_user
-    and (s.not_after is null or s.not_after > statement_timestamp()))
+    and (s.not_after is null or s.not_after > clock_timestamp()))
 $$;
 
 create function rose_care.staff_actor(p_user uuid, p_session uuid, p_write boolean default false)
@@ -81,6 +82,9 @@ begin
     raise exception 'Staff access denied' using errcode='42501';
   end if;
   if p_write then
+    perform 1 from auth.sessions s where s.id=p_session and s.user_id=p_user
+      and (s.not_after is null or s.not_after > clock_timestamp()) for share;
+    if not found then raise exception 'Staff access denied' using errcode='42501'; end if;
     select * into actor from rose_care.employees where id=p_user and active and staff_fixture for share;
   else
     select * into actor from rose_care.employees where id=p_user and active and staff_fixture;
@@ -105,7 +109,7 @@ $$;
 
 create function rose_care.staff_order_visible(p_actor rose_care.employees,p_order rose_care.orders,p_customer rose_care.customers)
 returns boolean language sql immutable set search_path = '' as $$
-  select p_order.id is not null and p_order.customer_id=p_customer.id and p_customer.staff_fixture and case p_actor.role
+  select p_order.id is not null and p_order.customer_id=p_customer.id and p_order.staff_fixture and p_customer.staff_fixture and case p_actor.role
     when 'admin' then true when 'manager' then true
     when 'advisor' then p_order.advisor_id=p_actor.id and p_customer.advisor_id=p_actor.id
     when 'logistics' then p_order.logistics_id=p_actor.id
@@ -250,6 +254,7 @@ begin
     when 'order.transition','order.assign' then
       select * into current_order from rose_care.orders where id=target for update;
       select * into customer from rose_care.customers where id=current_order.customer_id;
+      if not rose_care.staff_session(p_user,p_session) then raise exception 'Staff access denied' using errcode='42501'; end if;
       if not coalesce(rose_care.staff_order_visible(actor,current_order,customer),false) then
         raise exception 'Staff access denied' using errcode='42501';
       end if;
@@ -266,11 +271,11 @@ begin
       else
         if not editorial then raise exception 'Staff access denied' using errcode='42501'; end if;
         if nullif(p_data->>'preparation_id','') is not null and not exists(select 1 from rose_care.employees
-            where id=(p_data->>'preparation_id')::uuid and active and staff_fixture and role='preparation') then
+            where id=(p_data->>'preparation_id')::uuid and active and staff_fixture and role='preparation' for share) then
           raise exception 'Invalid assignee' using errcode='22023';
         end if;
         if nullif(p_data->>'logistics_id','') is not null and not exists(select 1 from rose_care.employees
-            where id=(p_data->>'logistics_id')::uuid and active and staff_fixture and role='logistics') then
+            where id=(p_data->>'logistics_id')::uuid and active and staff_fixture and role='logistics' for share) then
           raise exception 'Invalid assignee' using errcode='22023';
         end if;
         update rose_care.orders set preparation_id=nullif(p_data->>'preparation_id','')::uuid,
@@ -294,7 +299,7 @@ begin
       if line_count not between 1 and 16 then raise exception 'Invalid items' using errcode='22023'; end if;
       ship := coalesce((p_data->>'shipping')::numeric,0);
       reduction := coalesce((p_data->>'discount')::numeric,0);
-      if ship not between 0 and 999999 or reduction not between 0 and 999999 or ship<>round(ship,2) or reduction<>round(reduction,2)
+      if ship not between 0 and 999999.99 or reduction not between 0 and 999999.99 or ship<>round(ship,2) or reduction<>round(reduction,2)
         or (not editorial and (ship<>0 or reduction<>0)) then
         raise exception 'Invalid amounts' using errcode='22023';
       end if;
@@ -306,7 +311,7 @@ begin
       loop
         line_price := case when editorial then coalesce(item.unit_price,item.price) else item.price end;
         if item.title is null or item.quantity is null or item.quantity not between 1 and 999 or
-          item.currency<>'MAD' or line_price is null or line_price not between 0 and 999999 or line_price<>round(line_price,2) or
+          item.currency<>'MAD' or line_price is null or line_price not between 0 and 999999.99 or line_price<>round(line_price,2) or
           (not editorial and item.unit_price is not null) or
           exists(select 1 from jsonb_array_elements(item_rows) j where j->>'variant_id'=item.variant_id::text) then
           raise exception 'Invalid order item' using errcode='22023';
@@ -315,8 +320,11 @@ begin
         item_rows := item_rows || jsonb_build_array(jsonb_build_object('variant_id',item.variant_id,'title',item.title,'quantity',item.quantity,'unit_price',line_price));
       end loop;
       if reduction>subtotal+ship then raise exception 'Invalid discount' using errcode='22023'; end if;
-      insert into rose_care.orders(customer_id,advisor_id,total,shipping,discount,delivery_phone,delivery_address,delivery_city)
-        values(customer.id,customer.advisor_id,subtotal+ship-reduction,ship,reduction,customer.phone,address.address,address.city) returning id into target;
+      if subtotal+ship-reduction>9999999999.99 then
+        raise exception 'Order total exceeds numeric(12,2)' using errcode='22003';
+      end if;
+      insert into rose_care.orders(customer_id,advisor_id,total,shipping,discount,delivery_phone,delivery_address,delivery_city,staff_fixture)
+        values(customer.id,customer.advisor_id,subtotal+ship-reduction,ship,reduction,customer.phone,address.address,address.city,true) returning id into target;
       insert into rose_care.order_items(order_id,variant_id,title,quantity,unit_price)
         select target,variant_id,title,quantity,unit_price
         from jsonb_to_recordset(item_rows) l(variant_id uuid,title text,quantity integer,unit_price numeric);
@@ -484,7 +492,7 @@ begin
     when 'catalog.variant' then
       if not editorial then raise exception 'Staff access denied' using errcode='42501'; end if;
       line_price := nullif(p_data->>'price','')::numeric;
-      if line_price is not null and (line_price not between 0 and 999999 or line_price<>round(line_price,2)) then raise exception 'Invalid price' using errcode='22023'; end if;
+      if line_price is not null and (line_price not between 0 and 999999.99 or line_price<>round(line_price,2)) then raise exception 'Invalid price' using errcode='22023'; end if;
       if nullif(p_data->>'stock','')::integer not between 0 and 999999 then raise exception 'Invalid stock' using errcode='22023'; end if;
       update rose_care.variants v set price=line_price, stock=nullif(p_data->>'stock','')::integer
         from rose_care.products p where v.id=target and p.id=v.product_id and p.staff_fixture;
@@ -564,7 +572,7 @@ create schema rose_storage_policy;
 revoke all on schema rose_storage_policy from public,anon;
 grant usage on schema rose_storage_policy to authenticated;
 create function rose_storage_policy.guide_allowed(p_name text) returns boolean
-language sql stable security definer set search_path = '' as $$
+language sql volatile security definer set search_path = '' as $$
   select p_name ~ '^fictional/[a-zA-Z0-9_/-]+[.]pdf$' and
     rose_care.staff_session(auth.uid(), (auth.jwt()->>'session_id')::uuid) and
     exists(select 1 from rose_care.employees where id=auth.uid() and active and staff_fixture and role in ('admin','manager','advisor')) and

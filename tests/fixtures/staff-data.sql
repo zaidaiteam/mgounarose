@@ -27,10 +27,10 @@ insert into rose_care.customers(id,name,phone,email,advisor_id,staff_fixture) va
 insert into rose_care.addresses(id,customer_id,address,city) values
  ('40000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001','Adresse fictive Atlas','Casablanca'),
  ('40000000-0000-4000-8000-000000000002','30000000-0000-4000-8000-000000000002','Adresse fictive Oasis','Rabat');
-insert into rose_care.orders(id,customer_id,advisor_id,delivery_address,delivery_phone,delivery_city,total,preparation_id,logistics_id) values
+insert into rose_care.orders(id,customer_id,advisor_id,delivery_address,delivery_phone,delivery_city,total,preparation_id,logistics_id,staff_fixture) values
  ('51000001-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000002',
-  'Adresse fictive Atlas','DEMO-001','Casablanca',123.45,'10000000-0000-4000-8000-000000000006','10000000-0000-4000-8000-000000000005'),
- ('51000002-0000-4000-8000-000000000002','30000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000003',null,null,null,25,null,null);
+  'Adresse fictive Atlas','DEMO-001','Casablanca',123.45,'10000000-0000-4000-8000-000000000006','10000000-0000-4000-8000-000000000005',true),
+ ('51000002-0000-4000-8000-000000000002','30000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000003',null,null,null,25,null,null,true);
 insert into rose_care.order_items(order_id,title,quantity,unit_price) values
  ('51000001-0000-4000-8000-000000000001','Brume fictive',1,123.45);
 insert into rose_care.products(id,title,staff_fixture) values ('60000000-0000-4000-8000-000000000001','Produit préparé fictif',true);

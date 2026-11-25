@@ -1,0 +1,377 @@
+[
+  {
+    "relname": "addresses",
+    "columns": [
+      "id:uuid",
+      "customer_id:uuid",
+      "address:text",
+      "city:text",
+      "country:text"
+    ],
+    "constraints": [
+      "addresses_customer_id_fkey:FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id)",
+      "addresses_pkey:PRIMARY KEY (id)"
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX addresses_pkey ON rose_care.addresses USING btree (id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+  },
+  {
+    "relname": "audit_logs",
+    "columns": [
+      "id:uuid",
+      "actor_id:uuid",
+      "action:text",
+      "entity:text",
+      "entity_id:uuid",
+      "created_at:timestamp with time zone"
+    ],
+    "constraints": [
+      "audit_logs_actor_id_fkey:FOREIGN KEY (actor_id) REFERENCES rose_care.employees(id)",
+      "audit_logs_pkey:PRIMARY KEY (id)"
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX audit_logs_pkey ON rose_care.audit_logs USING btree (id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=ar/postgres}"
+  },
+  {
+    "relname": "bundles",
+    "columns": [
+      "bundle_variant_id:uuid",
+      "component_variant_id:uuid",
+      "quantity:integer"
+    ],
+    "constraints": [
+      "bundles_bundle_variant_id_fkey:FOREIGN KEY (bundle_variant_id) REFERENCES rose_care.variants(id)",
+      "bundles_component_variant_id_fkey:FOREIGN KEY (component_variant_id) REFERENCES rose_care.variants(id)",
+      "bundles_pkey:PRIMARY KEY (bundle_variant_id, component_variant_id)",
+      "bundles_quantity_check:CHECK ((quantity > 0))"
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX bundles_pkey ON rose_care.bundles USING btree (bundle_variant_id, component_variant_id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+  },
+  {
+    "relname": "care_guides",
+    "columns": [
+      "id:uuid",
+      "product_id:uuid",
+      "language:text",
+      "title:text",
+      "storage_path:text",
+      "body:text",
+      "approved:boolean"
+    ],
+    "constraints": [
+      "care_guides_pkey:PRIMARY KEY (id)",
+      "care_guides_product_id_fkey:FOREIGN KEY (product_id) REFERENCES rose_care.products(id)"
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX care_guides_pkey ON rose_care.care_guides USING btree (id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+  },
+  {
+    "relname": "complaints",
+    "columns": [
+      "id:uuid",
+      "customer_id:uuid",
+      "order_id:uuid",
+      "assignee_id:uuid",
+      "category:text",
+      "details:text",
+      "status:text",
+      "created_at:timestamp with time zone"
+    ],
+    "constraints": [
+      "complaints_assignee_id_fkey:FOREIGN KEY (assignee_id) REFERENCES rose_care.employees(id)",
+      "complaints_customer_id_fkey:FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id)",
+      "complaints_order_id_fkey:FOREIGN KEY (order_id) REFERENCES rose_care.orders(id)",
+      "complaints_pkey:PRIMARY KEY (id)"
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX complaints_pkey ON rose_care.complaints USING btree (id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+  },
+  {
+    "relname": "conversations",
+    "columns": [
+      "id:uuid",
+      "customer_id:uuid",
+      "advisor_id:uuid",
+      "channel:text",
+      "status:text"
+    ],
+    "constraints": [
+      "conversations_advisor_id_fkey:FOREIGN KEY (advisor_id) REFERENCES rose_care.employees(id)",
+      "conversations_customer_id_fkey:FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id)",
+      "conversations_pkey:PRIMARY KEY (id)"
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX conversations_pkey ON rose_care.conversations USING btree (id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+  },
+  {
+    "relname": "customers",
+    "columns": [
+      "id:uuid",
+      "shopify_id:text",
+      "name:text",
+      "phone:text",
+      "email:text",
+      "language:text",
+      "market:text",
+      "advisor_id:uuid",
+      "created_at:timestamp with time zone"
+    ],
+    "constraints": [
+      "customers_advisor_id_fkey:FOREIGN KEY (advisor_id) REFERENCES rose_care.employees(id)",
+      "customers_pkey:PRIMARY KEY (id)",
+      "customers_shopify_id_key:UNIQUE (shopify_id)"
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX customers_pkey ON rose_care.customers USING btree (id)",
+      "CREATE UNIQUE INDEX customers_shopify_id_key ON rose_care.customers USING btree (shopify_id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+  },
+  {
+    "relname": "employees",
+    "columns": [
+      "id:uuid",
+      "display_name:text",
+      "role:text",
+      "active:boolean",
+      "created_at:timestamp with time zone"
+    ],
+    "constraints": [
+      "employees_id_fkey:FOREIGN KEY (id) REFERENCES auth.users(id)",
+      "employees_pkey:PRIMARY KEY (id)",
+      "employees_role_check:CHECK ((role = ANY (ARRAY['admin'::text, 'manager'::text, 'advisor'::text, 'logistics'::text, 'preparation'::text])))"
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX employees_pkey ON rose_care.employees USING btree (id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+  },
+  {
+    "relname": "faqs",
+    "columns": [
+      "id:uuid",
+      "product_id:uuid",
+      "language:text",
+      "category:text",
+      "question:text",
+      "answer:text",
+      "approved:boolean"
+    ],
+    "constraints": [
+      "faqs_pkey:PRIMARY KEY (id)",
+      "faqs_product_id_fkey:FOREIGN KEY (product_id) REFERENCES rose_care.products(id)"
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX faqs_pkey ON rose_care.faqs USING btree (id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+  },
+  {
+    "relname": "message_templates",
+    "columns": [
+      "id:uuid",
+      "category:text",
+      "language:text",
+      "title:text",
+      "body:text",
+      "approved:boolean",
+      "version:integer"
+    ],
+    "constraints": [
+      "message_templates_language_check:CHECK ((language = ANY (ARRAY['fr'::text, 'ar'::text, 'darija'::text, 'en'::text])))",
+      "message_templates_pkey:PRIMARY KEY (id)"
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX message_templates_pkey ON rose_care.message_templates USING btree (id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+  },
+  {
+    "relname": "messages",
+    "columns": [
+      "id:uuid",
+      "conversation_id:uuid",
+      "template_id:uuid",
+      "direction:text",
+      "body:text",
+      "created_at:timestamp with time zone"
+    ],
+    "constraints": [
+      "messages_conversation_id_fkey:FOREIGN KEY (conversation_id) REFERENCES rose_care.conversations(id)",
+      "messages_direction_check:CHECK ((direction = ANY (ARRAY['inbound'::text, 'outbound'::text])))",
+      "messages_pkey:PRIMARY KEY (id)",
+      "messages_template_id_fkey:FOREIGN KEY (template_id) REFERENCES rose_care.message_templates(id)"
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX messages_pkey ON rose_care.messages USING btree (id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+  },
+  {
+    "relname": "order_events",
+    "columns": [
+      "id:uuid",
+      "order_id:uuid",
+      "actor_id:uuid",
+      "event_type:text",
+      "details:jsonb",
+      "created_at:timestamp with time zone"
+    ],
+    "constraints": [
+      "order_events_actor_id_fkey:FOREIGN KEY (actor_id) REFERENCES rose_care.employees(id)",
+      "order_events_order_id_fkey:FOREIGN KEY (order_id) REFERENCES rose_care.orders(id)",
+      "order_events_pkey:PRIMARY KEY (id)"
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX order_events_pkey ON rose_care.order_events USING btree (id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=ar/postgres}"
+  },
+  {
+    "relname": "order_items",
+    "columns": [
+      "id:uuid",
+      "order_id:uuid",
+      "variant_id:uuid",
+      "title:text",
+      "quantity:integer",
+      "unit_price:numeric(12,2)"
+    ],
+    "constraints": [
+      "order_items_order_id_fkey:FOREIGN KEY (order_id) REFERENCES rose_care.orders(id)",
+      "order_items_pkey:PRIMARY KEY (id)",
+      "order_items_quantity_check:CHECK ((quantity > 0))",
+      "order_items_unit_price_check:CHECK ((unit_price >= (0)::numeric))",
+      "order_items_variant_id_fkey:FOREIGN KEY (variant_id) REFERENCES rose_care.variants(id)"
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX order_items_pkey ON rose_care.order_items USING btree (id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+  },
+  {
+    "relname": "orders",
+    "columns": [
+      "id:uuid",
+      "shopify_id:text",
+      "customer_id:uuid",
+      "advisor_id:uuid",
+      "status:text",
+      "currency:text",
+      "total:numeric(12,2)",
+      "shipping:numeric(12,2)",
+      "created_at:timestamp with time zone"
+    ],
+    "constraints": [
+      "orders_advisor_id_fkey:FOREIGN KEY (advisor_id) REFERENCES rose_care.employees(id)",
+      "orders_customer_id_fkey:FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id)",
+      "orders_pkey:PRIMARY KEY (id)",
+      "orders_shipping_check:CHECK ((shipping >= (0)::numeric))",
+      "orders_shopify_id_key:UNIQUE (shopify_id)",
+      "orders_status_check:CHECK ((status = ANY (ARRAY['new'::text, 'contacting'::text, 'callback'::text, 'confirmed'::text, 'preparing'::text, 'dispatched'::text, 'delivered'::text, 'failed_delivery'::text, 'cancelled'::text, 'returned'::text])))",
+      "orders_total_check:CHECK ((total >= (0)::numeric))"
+    ],
+    "indexes": [
+      "CREATE INDEX orders_advisor_idx ON rose_care.orders USING btree (advisor_id, status)",
+      "CREATE INDEX orders_customer_idx ON rose_care.orders USING btree (customer_id)",
+      "CREATE UNIQUE INDEX orders_pkey ON rose_care.orders USING btree (id)",
+      "CREATE UNIQUE INDEX orders_shopify_id_key ON rose_care.orders USING btree (shopify_id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+  },
+  {
+    "relname": "preferences",
+    "columns": [
+      "customer_id:uuid",
+      "marketing_opt_in:boolean",
+      "consent_at:timestamp with time zone",
+      "preferred_channel:text"
+    ],
+    "constraints": [
+      "preferences_customer_id_fkey:FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id)",
+      "preferences_pkey:PRIMARY KEY (customer_id)"
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX preferences_pkey ON rose_care.preferences USING btree (customer_id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+  },
+  {
+    "relname": "products",
+    "columns": [
+      "id:uuid",
+      "shopify_id:text",
+      "title:text",
+      "knowledge:jsonb",
+      "active:boolean"
+    ],
+    "constraints": [
+      "products_pkey:PRIMARY KEY (id)",
+      "products_shopify_id_key:UNIQUE (shopify_id)"
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX products_pkey ON rose_care.products USING btree (id)",
+      "CREATE UNIQUE INDEX products_shopify_id_key ON rose_care.products USING btree (shopify_id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+  },
+  {
+    "relname": "tasks",
+    "columns": [
+      "id:uuid",
+      "order_id:uuid",
+      "customer_id:uuid",
+      "assignee_id:uuid",
+      "title:text",
+      "due_at:timestamp with time zone",
+      "status:text"
+    ],
+    "constraints": [
+      "tasks_assignee_id_fkey:FOREIGN KEY (assignee_id) REFERENCES rose_care.employees(id)",
+      "tasks_customer_id_fkey:FOREIGN KEY (customer_id) REFERENCES rose_care.customers(id)",
+      "tasks_order_id_fkey:FOREIGN KEY (order_id) REFERENCES rose_care.orders(id)",
+      "tasks_pkey:PRIMARY KEY (id)"
+    ],
+    "indexes": [
+      "CREATE INDEX tasks_assignee_idx ON rose_care.tasks USING btree (assignee_id, due_at)",
+      "CREATE UNIQUE INDEX tasks_pkey ON rose_care.tasks USING btree (id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+  },
+  {
+    "relname": "variants",
+    "columns": [
+      "id:uuid",
+      "product_id:uuid",
+      "shopify_id:text",
+      "sku:text",
+      "title:text",
+      "price:numeric(12,2)",
+      "currency:text"
+    ],
+    "constraints": [
+      "variants_pkey:PRIMARY KEY (id)",
+      "variants_price_check:CHECK ((price >= (0)::numeric))",
+      "variants_product_id_fkey:FOREIGN KEY (product_id) REFERENCES rose_care.products(id)",
+      "variants_shopify_id_key:UNIQUE (shopify_id)"
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX variants_pkey ON rose_care.variants USING btree (id)",
+      "CREATE UNIQUE INDEX variants_shopify_id_key ON rose_care.variants USING btree (shopify_id)"
+    ],
+    "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+  }
+]
