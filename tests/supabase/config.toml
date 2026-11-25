@@ -29,7 +29,9 @@ enable_signup = false
 enable_anonymous_sign_ins = false
 
 [auth.email]
-enable_signup = false
+# CLI 2.75 maps this switch to GoTrue email-provider enablement.
+# The global Auth setting above still disables public registration.
+enable_signup = true
 enable_confirmations = true
 max_frequency = "1s"
 

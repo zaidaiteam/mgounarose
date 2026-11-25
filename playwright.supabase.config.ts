@@ -10,5 +10,6 @@ export default defineConfig({
     command: "pnpm start --hostname 127.0.0.1 --port 3101",
     url: origin + "/staff/login",
     reuseExistingServer: false,
+    env: { ROSE_LOCAL_API_ADMIN: "", ROSE_LOCAL_FIXTURE_PASSWORD: "" },
   },
 });

@@ -44,7 +44,7 @@ where id = :'fixture_admin_uuid'::uuid
 commit;
 ```
 
-Confirm the insert reports one row. The bootstrap does not overwrite an existing employee or promote one in place. Use a generated runtime password with the interactive `\password rose_care_app` command and then enable LOGIN for that role in the disposable cluster. Store the scoped DSN and flow secret in an ignored local environment file. Give the application only the publishable Auth key. Keep the local Auth administrator key outside the runtime configuration. Use the local mail sink to invite subsequent roles and keep signup disabled.
+Confirm the insert reports one row. The bootstrap does not overwrite an existing employee or promote one in place. Use a generated runtime password with the interactive `\password rose_care_app` command and then enable LOGIN for that role in the disposable cluster. Store the scoped DSN and flow secret in an ignored local environment file. Give the application only the publishable Auth key. Keep the local Auth administrator key outside the runtime configuration. Use the local mail sink to invite subsequent roles. In CLI 2.75.0, leave global `auth.enable_signup=false`. The separate email switch must remain enabled because that CLI maps it to GoTrue’s email provider, which is needed for sign-in and recovery. The suite verifies that direct signup is denied.
 
 ## Evidence and limits
 

@@ -192,11 +192,12 @@ test("actual private Storage, expiration, Auth revocation and database isolation
     password,
   });
   expect(auth.error?.code ?? null).toBeNull();
-  const oneSecond = await advisor.storage
+  const shortLived = await advisor.storage
     .from("rose-care-guides")
-    .createSignedUrl("fictional/demo.pdf", 1);
-  expect(oneSecond.error?.name ?? null).toBeNull();
-  const expiringUrl = oneSecond.data!.signedUrl;
+    .createSignedUrl("fictional/demo.pdf", 3);
+  expect(shortLived.error?.name ?? null).toBeNull();
+  const expiringUrl = shortLived.data!.signedUrl;
+  expect((await request.get(expiringUrl)).ok()).toBe(true);
   await expect
     .poll(async () => (await request.get(expiringUrl)).ok(), { timeout: 8000 })
     .toBe(false);
