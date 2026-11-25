@@ -4,6 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Rose Care Hub | M’Gouna Rose",
   description: "Espace de relation client et de suivi des commandes M’Gouna Rose.",
+  robots: { index: false, follow: false, noarchive: true },
   appleWebApp: { capable: true, title: "Rose Care Hub" },
   icons: { apple: "/icon-192.png" },
 };

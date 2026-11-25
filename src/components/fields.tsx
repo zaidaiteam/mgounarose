@@ -17,7 +17,7 @@ export function Filter({ query, setQuery, value, setValue, options, all }: {
 }
 export function Empty() { return <p className="empty">Aucun résultat.</p>; }
 export function Badge({ children }: { children: string }) {
-  const tone = children === "À confirmer" || children === "En attente" ? "warm" : children === "Annulée" || children === "Inactif" ? "rose" : "green";
+  const tone = children === "À confirmer" || children === "En attente" ? "warm" : ["Annulée", "Inactif", "Échec de livraison", "Retournée"].includes(children) ? "rose" : "green";
   return <span className={"badge " + tone}>{children}</span>;
 }
 export function formattedDate(date: string) {

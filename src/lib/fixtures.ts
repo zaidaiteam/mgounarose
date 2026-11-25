@@ -1,46 +1,269 @@
-import { dateAgo, type Store } from "@/lib/domain";
+import {
+  dateAgo,
+  transitions,
+  type Customer,
+  type Employee,
+  type KnowledgeRecord,
+  type Order,
+  type OrderStatus,
+  type Store,
+} from "./domain.ts";
+import { catalog } from "./catalog.ts";
+import { defaultTemplates } from "./templates.ts";
+
+export const demoCustomers: readonly Omit<Customer, "notes">[] = [
+  {
+    id: "c1",
+    name: "Démo Atlas",
+    title: "Mme",
+    city: "Casablanca",
+    email: "atlas@example.test",
+    phone: "DEMO-001",
+    address: "Adresse fictive Atlas",
+    language: "Français",
+  },
+  {
+    id: "c2",
+    name: "Démo Oasis",
+    title: "M.",
+    city: "Rabat",
+    email: "oasis@example.test",
+    phone: "DEMO-002",
+    address: "Adresse fictive Oasis",
+    language: "Darija",
+  },
+  {
+    id: "c3",
+    name: "Démo Vallée",
+    title: "Mme",
+    city: "Marrakech",
+    email: "vallee@example.test",
+    phone: "DEMO-003",
+    address: "Adresse fictive Vallée",
+    language: "العربية",
+  },
+  {
+    id: "c4",
+    name: "Démo Dune",
+    title: "M.",
+    city: "Tanger",
+    email: "dune@example.test",
+    phone: "DEMO-004",
+    address: "Adresse fictive Dune",
+    language: "English",
+  },
+  {
+    id: "c5",
+    name: "Démo Jardin",
+    title: "Mme",
+    city: "Agadir",
+    email: "jardin@example.test",
+    phone: "DEMO-005",
+    address: "Adresse fictive Jardin",
+    language: "Français",
+  },
+  {
+    id: "c6",
+    name: "Démo Rivage",
+    title: "M.",
+    city: "Essaouira",
+    email: "rivage@example.test",
+    phone: "DEMO-006",
+    address: "Adresse fictive Rivage",
+    language: "Darija",
+  },
+];
+export const demoEmployees: readonly Employee[] = [
+  { id: "e1", name: "Conseiller Démo Olive", role: "Conseiller", active: true },
+  { id: "e2", name: "Agent Démo Lin", role: "Logistique", active: true },
+  {
+    id: "e3",
+    name: "Responsable Démo Rose",
+    role: "Responsable",
+    active: true,
+  },
+  {
+    id: "e4",
+    name: "Conseiller Démo Ivoire",
+    role: "Conseiller",
+    active: true,
+  },
+  { id: "e5", name: "Agent Démo Sauge", role: "Logistique", active: true },
+];
+
+const knowledge: KnowledgeRecord[] = [
+  {
+    id: "g1",
+    kind: "guide",
+    title: "Le rituel à l’eau de rose",
+    group: "Routine",
+    text: "Consulter les indications de l’étiquette avant d’intégrer l’eau de rose à votre routine.",
+  },
+  {
+    id: "g2",
+    kind: "guide",
+    title: "Intégrer une huile à sa routine",
+    group: "Routine",
+    text: "Suivre les instructions figurant sur l’emballage pour l’utilisation et la quantité.",
+  },
+  {
+    id: "g3",
+    kind: "guide",
+    title: "Conserver les soins",
+    group: "Conservation",
+    text: "Refermer les flacons après utilisation et suivre les consignes de conservation sur l’étiquette.",
+  },
+  {
+    id: "f1",
+    kind: "faq",
+    title: "Comment confirmer une commande ?",
+    group: "Commandes",
+    text: "Vérifier les produits, quantités et le total à la livraison, puis confirmer depuis la fiche.",
+  },
+  {
+    id: "f2",
+    kind: "faq",
+    title: "Comment organiser un rappel ?",
+    group: "Service client",
+    text: "Planifier le rappel depuis une commande ou depuis Tâches et rappels.",
+  },
+  {
+    id: "f3",
+    kind: "faq",
+    title: "Comment retrouver un brouillon de confirmation ?",
+    group: "Service client",
+    text: "Depuis la commande, préparer un message et sélectionner le modèle Confirmation.",
+  },
+];
 
 export function fictionalStore(): Store {
+  const products = catalog();
+  const customers: Customer[] = demoCustomers
+    .slice(0, 4)
+    .map((customer) => ({
+      ...customer,
+      notes: customer.id === "c1" ? ["Rappeler en fin de journée"] : [],
+    }));
+  const makeOrder = (
+    number: number,
+    customer: Customer,
+    variantId: string,
+    label: string,
+    quantity: number,
+    unitPrice: number,
+    days: number,
+    steps: number,
+  ): Order => {
+    const date = dateAgo(days);
+    const statuses: OrderStatus[] = ["À confirmer"];
+    for (let index = 0; index < steps; index++)
+      statuses.push(transitions[statuses.at(-1)!][0]);
+    return {
+      id: "RCH-" + number,
+      customerId: customer.id,
+      city: customer.city,
+      phone: customer.phone,
+      address: customer.address,
+      advisorId: "e1",
+      lines: [{ variantId, label, quantity, unitPrice }],
+      deliveryFee: 2000,
+      discount: 0,
+      date,
+      status: statuses.at(-1)!,
+      history: statuses.map((status, index) => ({
+        status,
+        at: `${date}T00:0${index}:00.000Z`,
+      })),
+    };
+  };
   return {
-    customers: [
-      { id: "c1", name: "Salma Amrani", city: "Casablanca", email: "salma@example.test", language: "Français", notes: ["Préfère être contactée en fin de journée."] },
-      { id: "c2", name: "Yasmine Idrissi", city: "Rabat", email: "yasmine@example.test", language: "Darija", notes: [] },
-      { id: "c3", name: "Nour El Fassi", city: "Marrakech", email: "nour@example.test", language: "العربية", notes: [] },
-      { id: "c4", name: "Lina Bennis", city: "Tanger", email: "lina@example.test", language: "English", notes: [] },
-    ],
-    products: [
-      { id: "p1", name: "Eau de rose", kind: "Produit", price: 120, stock: 48, description: "Brume florale pour la routine quotidienne." },
-      { id: "p2", name: "Rituel de la vallée", kind: "Coffret", price: 320, stock: 14, description: "Coffret découverte composé d’une eau de rose et d’une huile de soin." },
-      { id: "p3", name: "Huile de soin", kind: "Produit", price: 220, stock: 22, description: "Huile pour accompagner le massage du soir." },
-      { id: "p4", name: "Duo floral", kind: "Coffret", price: 210, stock: 9, description: "Deux eaux de rose à offrir ou à partager." },
-    ],
+    customers,
+    products,
     orders: [
-      { id: "RCH-1048", customerId: "c1", productId: "p2", quantity: 1, unitPrice: 320, status: "À confirmer", date: dateAgo(0) },
-      { id: "RCH-1047", customerId: "c2", productId: "p1", quantity: 2, unitPrice: 120, status: "À confirmer", date: dateAgo(0) },
-      { id: "RCH-1046", customerId: "c3", productId: "p3", quantity: 1, unitPrice: 220, status: "Confirmée", date: dateAgo(1) },
-      { id: "RCH-1045", customerId: "c4", productId: "p4", quantity: 1, unitPrice: 210, status: "Expédiée", date: dateAgo(2) },
-      { id: "RCH-1044", customerId: "c1", productId: "p1", quantity: 1, unitPrice: 120, status: "Livrée", date: dateAgo(4) },
+      makeOrder(
+        1048,
+        customers[0],
+        "mist-1",
+        "Rose Water Mist · 125 mL",
+        1,
+        10000,
+        0,
+        0,
+      ),
+      makeOrder(
+        1047,
+        customers[1],
+        "water-1",
+        "Pure Rose Water · 250 mL",
+        2,
+        8000,
+        0,
+        0,
+      ),
+      makeOrder(
+        1046,
+        customers[2],
+        "oil-1",
+        "Rose Oil · 30 mL",
+        1,
+        13000,
+        1,
+        1,
+      ),
+      makeOrder(
+        1045,
+        customers[3],
+        "buds-1",
+        "Dried Damask Rose Buds · 100 g",
+        1,
+        6000,
+        2,
+        3,
+      ),
+      makeOrder(
+        1044,
+        customers[0],
+        "mist-2",
+        "Rose Water Mist · 200 mL",
+        1,
+        12000,
+        4,
+        4,
+      ),
     ],
     tasks: [
-      { id: "t1", title: "Confirmer le coffret de Salma", due: dateAgo(0), customerId: "c1", employeeId: "e1", kind: "Rappel", done: false },
-      { id: "t2", title: "Vérifier la livraison de Lina", due: dateAgo(0), customerId: "c4", employeeId: "e2", kind: "Tâche", done: false },
-      { id: "t3", title: "Préparer les conseils pour Nour", due: dateAgo(-1), customerId: "c3", employeeId: "e1", kind: "Tâche", done: false },
+      {
+        id: "t1",
+        title: "Confirmer la commande",
+        due: dateAgo(0),
+        customerId: "c1",
+        employeeId: "e1",
+        orderId: "RCH-1048",
+        kind: "Rappel",
+        done: false,
+      },
+      {
+        id: "t2",
+        title: "Vérifier la livraison",
+        due: dateAgo(0),
+        customerId: "c4",
+        employeeId: "e2",
+        orderId: "RCH-1045",
+        kind: "Tâche",
+        done: false,
+      },
+      {
+        id: "t3",
+        title: "Préparer les conseils",
+        due: dateAgo(-1),
+        customerId: "c3",
+        employeeId: "e1",
+        kind: "Tâche",
+        done: false,
+      },
     ],
-    employees: [
-      { id: "e1", name: "Inès Amani", role: "Conseiller", active: true },
-      { id: "e2", name: "Adam Naciri", role: "Logistique", active: true },
-      { id: "e3", name: "Sofia El Kadi", role: "Responsable", active: true },
-    ],
+    employees: demoEmployees.slice(0, 3).map((item) => ({ ...item })),
+    knowledge: knowledge.map((entry) => ({ ...entry })),
+    templates: defaultTemplates(),
   };
 }
-
-export const guides = [
-  { title: "Le rituel à l’eau de rose", group: "Routine", text: "Après le nettoyage, appliquer la brume sur le visage en évitant le contact avec les yeux, puis poursuivre la routine habituelle. Se référer aux indications de l’étiquette." },
-  { title: "Intégrer une huile à sa routine", group: "Routine", text: "Réchauffer quelques gouttes entre les mains et masser doucement, en suivant les instructions figurant sur l’emballage." },
-  { title: "Conserver les soins", group: "Conservation", text: "Refermer les flacons après utilisation. Respecter les conditions de conservation et la durée après ouverture indiquées sur chaque produit." },
-];
-export const faq = [
-  { title: "Comment confirmer une commande ?", group: "Commandes", text: "Vérifier le produit et la quantité avec la cliente ou le client, puis sélectionner Confirmée dans la fiche de commande." },
-  { title: "Comment organiser un rappel ?", group: "Service client", text: "Créer un rappel dans Tâches, renseigner la personne à contacter, l’échéance et le membre de l’équipe chargé du suivi." },
-  { title: "Comment retrouver un brouillon de confirmation ?", group: "Service client", text: "Ouvrir la commande, sélectionner Préparer un message, puis choisir le modèle Confirmation et la langue souhaitée." },
-];

@@ -1,10 +1,10 @@
-# Rose Care Hub V0.1
+# Rose Care Hub V0.2
 
 Prototype interne pour la relation client de M’Gouna Rose. L’interface est en français et s’adapte aux téléphones, tablettes et ordinateurs.
 
 ## Démarrage
 
-Node.js 22.18+ et pnpm 11 sont requis.
+Node.js 24 et pnpm 11 sont utilisés pour la validation.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -15,34 +15,40 @@ Ouvrir http://localhost:3000. Aucune variable d’environnement n’est nécessa
 
 ## Parcours de revue
 
-1. Ouvrir la commande fictive RCH-1048 depuis le tableau de bord, la confirmer et consulter la fiche client associée.
-2. Préparer un message depuis la commande, changer la langue, puis générer, modifier et copier le brouillon. Les modèles fonctionnent localement et aucun message n’est envoyé.
-3. Créer un profil et une commande. Filtrer les commandes et rechercher un profil, un produit ou un article via la barre globale.
-4. Modifier une fiche du catalogue, ajouter une note client, créer un rappel confié à un membre actif et le terminer. Vérifier les indicateurs dans Performance.
-5. Parcourir les guides et la FAQ par catégorie. Créer ou modifier un membre de l’équipe dans l’annuaire.
+1. Dans **Commandes**, créer une commande avec deux variantes. Choisir un profil et un conseiller fictifs, saisir les prix de simulation, les frais et la remise, puis vérifier le montant à payer à la livraison.
+2. Depuis la fiche, confirmer la commande, la mettre en préparation, l’expédier et signaler un échec de livraison. Planifier un rappel, relancer la préparation, puis ouvrir et clôturer un retour. L’historique conserve les changements de statut et les prix des lignes.
+3. Dans **Catalogue**, filtrer les précommandes et modifier une composition fictive. Le catalogue initial reprend les produits et formats fournis. Les prix, stocks et composants non renseignés restent vides. Aucune donnée d’ingrédient n’est présumée.
+4. Depuis une commande ou un guide, ouvrir **Atelier de messages**. Les dix scénarios sont éditables dans les quatre langues. Les variables portent sur le profil, la commande, les montants et le guide. Les brouillons sont copiables et ne sont jamais envoyés par l’application. Les liens de guide désignent la bibliothèque locale et les nouveaux guides restent propres au navigateur.
+5. Ouvrir un résultat de recherche, modifier un guide ou un article de la FAQ, puis terminer un rappel. Vérifier la mise à jour dans **Performance**.
 
-Les changements de démonstration sont enregistrés dans le stockage local de ce navigateur. Ils ne sont ni partagés entre appareils ou onglets ouverts, ni envoyés à un serveur. Pour réinitialiser la démonstration, supprimer la clé locale `rose-care-demo-v1` puis recharger la page. L’annuaire ne contrôle pas les accès. Le stock est indicatif et les commandes conservent leur prix unitaire initial. Les rappels sont visibles dans l’application, sans notification externe.
+Les identités, coordonnées, adresses, notes de suivi et objets de rappel proviennent uniquement de choix fictifs prédéfinis. Utiliser du texte générique dans les modèles, les brouillons et la bibliothèque. Les contrôles détectent les formats courants de coordonnées et de liens externes, avec les limites d’un filtre de texte. Le bouton **Réinitialiser les données** restaure les exemples après confirmation. Cette version ignore et efface l’ancien stockage V0.1, qui autorisait la saisie libre de coordonnées.
+
+Les changements sont stockés dans ce navigateur. Il n’y a ni synchronisation, ni accès aux commandes réelles, ni notifications externes. L’annuaire ne contrôle aucun accès.
 
 ## Validation
 
 ```sh
+pnpm audit
 pnpm test
 pnpm lint
 pnpm typecheck
 pnpm build
-pnpm start
+pnpm exec playwright install chromium
+pnpm test:e2e
 ```
 
-La PWA utilise un manifeste et un service worker activé en mode production. Avec `pnpm start` sur localhost, attendre l’installation du service worker lors de la première visite en ligne. Le navigateur peut ensuite ouvrir l’interface et utiliser les données fictives hors ligne. Sur un autre hôte, HTTPS est requis.
+Playwright démarre la version de production sur le port 3100. GitHub Actions relance ces commandes sur les pull requests et sur `main`.
+
+Le service worker est actif en production. Une première visite en ligne lui permet d’installer la page statique publique `/offline-demo` et ses fichiers. Les pages et réponses d’API visitées à l’exécution ne sont pas ajoutées au cache. Seule la racine du prototype peut être remplacée par cette page lorsque le réseau échoue. La politique de cache et les vérifications sont documentées dans [le rapport V0.2](docs/verification-v0.2.md).
 
 ## Intégrations
 
-Le projet Supabase de référence est hébergé à Paris. Son schéma privé `rose_care` contient 18 tables protégées. Cette version n’instancie aucun client Supabase ou Shopify et ne contacte aucun des deux services. L’intégration de données réelles exigera une authentification, une autorisation côté serveur et une révision du stockage hors ligne. Aucun déploiement n’est prévu pour cette version.
+Le projet Supabase de référence est hébergé à Paris. Son schéma privé `rose_care` contient 18 tables protégées. Cette version ne contacte ni Supabase, ni Shopify. Elle ne doit pas recevoir de données réelles. Une future intégration devra établir l’authentification et l’autorisation côté serveur et revoir la séparation avec le prototype et son service worker.
 
 ## Structure
 
-- `src/app` contient le point d’entrée Next.js, les styles et le manifeste.
-- `src/components` contient la navigation, les écrans et les composants d’interface.
-- `src/lib` contient les modèles, règles métier, données fictives et modèles de messages.
+- `src/app` contient les points d’entrée Next.js, les styles et les métadonnées.
+- `src/components` contient la navigation et les écrans.
+- `src/lib` contient les règles métier, les données fictives, les modèles et la validation.
 - `public` contient les icônes et le service worker.
-- `tests` contient les tests des règles métier.
+- `tests` contient les tests unitaires et les scénarios Playwright de bureau et mobiles.

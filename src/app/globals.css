@@ -163,3 +163,17 @@ meter::-webkit-meter-optimum-value { background: var(--olive); }
   .hero, .metrics { margin-bottom: 1.2rem; }
   .metrics { gap: 1rem; }
 }
+
+.demo-warning { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem; padding: .8rem 1rem; margin-bottom: 1rem; border: 1px solid #e6cbd2; border-radius: .5rem; background: #f6e9ec; color: #703145; }
+.demo-warning svg { flex: none; }
+.demo-warning p { flex: 1 1 15rem; font-size: .875rem; }
+.demo-warning .btn { flex: 0 0 auto; }
+.order-line, .variant-fields { display: grid; align-items: end; gap: .55rem; padding: .8rem; border: 1px solid var(--border); border-radius: .35rem; min-width: 0; }
+.variant-fields legend { padding-inline: .35rem; font-weight: 650; font-size: .875rem; }
+.knowledge-text { white-space: pre-wrap; margin-bottom: .65rem; }
+.template-token { display: inline-block; margin: .2rem; padding: .1rem .35rem; background: var(--ivory); }
+.selected-row { background: #edf0e5; }
+@media (min-width: 42rem) {
+  .order-line { grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)) auto; }
+  .variant-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
