@@ -16,6 +16,14 @@ async function login(page: Page, name: string) {
   await page.getByLabel("Adresse e-mail").fill(name + "@example.test");
   await page.getByLabel("Mot de passe", { exact: true }).fill(password);
   await button(page, "Se connecter").click();
+  if (name !== "inactive") {
+    await expect
+      .poll(() => new URL(page.url()).pathname, {
+        timeout: 7000,
+        message: "Staff login for fixture " + name,
+      })
+      .toBe("/staff/workspace");
+  }
 }
 async function mailLink(email: string, type: "invite" | "recovery") {
   let link = "";

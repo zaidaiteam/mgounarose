@@ -4,7 +4,7 @@ const origin = "http://127.0.0.1:3101";
 export default defineConfig({
   testDir: "./tests/supabase",
   workers: 1,
-  timeout: 120_000,
+  timeout: 45_000,
   use: { ...devices["Desktop Chrome"], baseURL: origin, trace: "off" },
   webServer: {
     command: "pnpm start --hostname 127.0.0.1 --port 3101",

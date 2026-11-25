@@ -17,8 +17,8 @@ if (
   dbUrl.port !== "54322"
 )
   throw new Error("Refusing all non-test endpoints");
-const secret = status.SECRET_KEY ?? status.SERVICE_ROLE_KEY;
-const publicKey = status.PUBLISHABLE_KEY ?? status.ANON_KEY;
+const secret = status.SERVICE_ROLE_KEY ?? status.SECRET_KEY;
+const publicKey = status.ANON_KEY ?? status.PUBLISHABLE_KEY;
 const admin = createClient(authUrl.origin, secret, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
@@ -100,6 +100,42 @@ try {
 }
 dbUrl.username = "rose_care_app";
 dbUrl.password = dbPassword;
+const probe = createClient(authUrl.origin, publicKey, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+const signedIn = checked(
+  await probe.auth.signInWithPassword({
+    email: "admin@example.test",
+    password,
+  }),
+  "local Auth preflight",
+);
+const claims = checked(
+  await probe.auth.getClaims(signedIn.session.access_token),
+  "local verified claims preflight",
+).claims;
+if (!claims?.session_id || claims.sub !== signedIn.user.id)
+  throw new Error("Local Auth session claim missing");
+const scoped = postgres(dbUrl.href, { prepare: false });
+try {
+  const [row] =
+    await scoped`select rose_care.staff_identity(${claims.sub}::uuid,${String(claims.session_id)}::uuid) as actor`;
+  if (row.actor?.role !== "admin")
+    throw new Error("Fixture administrator was not authorized");
+} catch (error) {
+  throw new Error(
+    "Local database identity preflight failed (" +
+      (error.code ?? "identity") +
+      ")",
+  );
+} finally {
+  await scoped.end();
+  await probe.auth.signOut({ scope: "local" });
+}
+console.log(
+  "Local Auth, verified session claims and scoped database login passed preflight.",
+);
+
 const env = {
   ...process.env,
   ROSE_STAFF_ENABLED: "true",
