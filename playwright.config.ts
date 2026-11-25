@@ -11,9 +11,16 @@ export default defineConfig({
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile", use: { ...devices["Pixel 7"] } },
   ],
-  webServer: {
-    command: "pnpm start --hostname 127.0.0.1 --port 3100",
-    url: baseURL,
-    reuseExistingServer: false,
-  },
+  webServer: [
+    {
+      command: "pnpm start --hostname 127.0.0.1 --port 3100",
+      url: baseURL,
+      reuseExistingServer: false,
+    },
+    {
+      command: "node tests/fixtures/staff-server.mjs",
+      url: "http://127.0.0.1:3101/staff/login",
+      reuseExistingServer: false,
+    },
+  ],
 });

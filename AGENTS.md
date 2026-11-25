@@ -1,8 +1,8 @@
 # Rose Care Hub
 
-- Keep the interface French-first. Message templates support French, Moroccan Darija (Latin script), Arabic and English.
+- Keep the interface French-first and preserve the isolated fictional PWA under `/demo/`.
 - Use Next.js App Router, TypeScript, Tailwind CSS and the local shadcn/ui components.
-- Use the predefined fictional profiles for customer and delivery details. Do not query the private Supabase schema, expose credentials, access real customer records, modify Shopify, send messages or deploy this prototype.
-- Preserve order history and line prices when editing catalog items. Keep business rules in `src/lib`.
-- The service worker can cache only the public fixture shell and its allowlisted assets. Keep authenticated routes and runtime responses out of the cache.
-- Before requesting review, run `pnpm audit`, `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build` and `pnpm test:e2e`.
+- Work with fictional data. Use Supabase project metadata only unless a later review explicitly authorizes live records. Never apply unreviewed migrations, deploy, or send external messages.
+- Keep Supabase authentication and the scoped PostgreSQL connection server-only. Add record authorization and SQL tests for every data operation. Do not trust user metadata for authorization.
+- Never persist authenticated records in localStorage, add staff routes to a worker cache, or expose credentials. Keep the root worker as a retirement script.
+- Before requesting review, run frozen install, audit, unit tests, lint, typecheck, production build and desktop/mobile browser tests. Run the lock race against dedicated PostgreSQL in CI.

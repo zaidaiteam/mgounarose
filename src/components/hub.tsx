@@ -94,7 +94,7 @@ export function Hub() {
     }, 0);
     window.addEventListener("popstate", sync);
     if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(console.error);
+      navigator.serviceWorker.register("/demo/sw.js", { scope: "/demo/" }).catch(() => {});
     }
     return () => {
       clearTimeout(timer);
@@ -126,7 +126,7 @@ export function Hub() {
         null,
         "",
         next === "workspace"
-          ? "/"
+          ? "/demo/"
           : "#" + next + (selection ? "/" + selection : ""),
       );
       window.scrollTo(0, 0);
