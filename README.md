@@ -1,4 +1,4 @@
-# Rose Care Hub V0.2
+# Rose Care Hub V0.3
 
 Prototype interne pour la relation client de M’Gouna Rose. L’interface est en français et s’adapte aux téléphones, tablettes et ordinateurs.
 
@@ -11,7 +11,9 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Ouvrir http://localhost:3000. Aucune variable d’environnement n’est nécessaire.
+Ouvrir http://localhost:3000 pour la démonstration isolée sous `/demo/`. Aucune variable d’environnement n’est nécessaire pour ce mode.
+
+L’espace authentifié de test se trouve sous `/staff/` et reste désactivé par défaut. Consulter [la configuration Supabase](docs/supabase-v0.3.md), [les permissions](docs/staff-permissions.md) et [le rapport de sécurité](docs/security-v0.3.md).
 
 ## Parcours de revue
 
@@ -37,13 +39,13 @@ pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
-Playwright démarre la version de production sur le port 3100. GitHub Actions relance ces commandes sur les pull requests et sur `main`.
+Playwright démarre la démonstration sur le port 3100 et l’espace authentifié de test sur le port 3101. GitHub Actions relance ces commandes et le test de concurrence PostgreSQL sur les pull requests et sur `main`.
 
-Le service worker est actif en production. Une première visite en ligne lui permet d’installer la page statique publique `/offline-demo` et ses fichiers. Les pages et réponses d’API visitées à l’exécution ne sont pas ajoutées au cache. Seule la racine du prototype peut être remplacée par cette page lorsque le réseau échoue. La politique de cache et les vérifications sont documentées dans [le rapport V0.2](docs/verification-v0.2.md).
+Le service worker actif est limité à `/demo/`. Le script à la racine retire l’ancien worker. L’espace authentifié ne met aucune réponse privée en cache.
 
 ## Intégrations
 
-Le projet Supabase de référence est hébergé à Paris. Son schéma privé `rose_care` contient 18 tables protégées. Cette version ne contacte ni Supabase, ni Shopify. Elle ne doit pas recevoir de données réelles. Une future intégration devra établir l’authentification et l’autorisation côté serveur et revoir la séparation avec le prototype et son service worker.
+Le projet Supabase de référence est hébergé à Paris. La migration versionnée adapte son schéma privé `rose_care`. Elle est livrée pour revue et doit d’abord être testée avec des fixtures isolées. Le prototype ne se connecte ni à Shopify ni à un fournisseur de messages, et aucun déploiement n’est inclus.
 
 ## Structure
 

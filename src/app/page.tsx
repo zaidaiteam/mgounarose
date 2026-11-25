@@ -1,4 +1,7 @@
-import { Hub } from "@/components/hub";
+import { redirect } from "next/navigation";
+import { staffEnabled } from "@/lib/staff/config";
+
+export const dynamic = "force-dynamic";
 export default function Page() {
-  return <Hub />;
+  redirect(staffEnabled() ? "/staff/workspace" : "/demo/");
 }

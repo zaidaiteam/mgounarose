@@ -4,11 +4,11 @@ import test from "node:test";
 import { runInNewContext } from "node:vm";
 
 const script = await readFile(
-  new URL("../public/sw.js", import.meta.url),
+  new URL("../public/demo/sw.js", import.meta.url),
   "utf8",
 );
 const origin = "https://prototype.example.test";
-const shell = "/offline-demo";
+const shell = "/demo/offline";
 type WorkerEvent = {
   request?: Request;
   waitUntil: (work: Promise<unknown>) => void;
@@ -41,7 +41,7 @@ function worker(headers: Record<string, string> = {}) {
       }),
       keys: async () => [
         "rose-care-shell-v1",
-        "rose-care-shell-v2",
+        "rose-care-demo-v3",
         "unrelated",
       ],
       delete: async (key: string) => {
@@ -54,14 +54,14 @@ function worker(headers: Record<string, string> = {}) {
         typeof request === "string" ? request : new URL(request.url).pathname;
       fetches.push([path, options]);
       if (!online) throw new Error("Offline");
-      if (path === "/") return new Response("Sign in", { status: 401 });
+      if (path === "/demo/") return new Response("Sign in", { status: 401 });
       if (path !== shell) return new Response("public asset");
       return new Response(
         '<script src="/_next/static/chunks/demo.js"></script><script src="/api/private"></script>',
         {
           headers: {
             "Content-Type": "text/html",
-            "X-Rose-Offline-Shell": "public-demo-v2",
+            "X-Rose-Offline-Shell": "public-demo-v3",
             ...headers,
           },
         },
@@ -104,7 +104,7 @@ test("worker caches only verified public shell assets and never substitutes an H
   );
   assert.deepEqual(harness.deleted, ["rose-care-shell-v1"]);
   const navigation = {
-    url: origin + "/",
+    url: origin + "/demo/",
     method: "GET",
     mode: "navigate",
     headers: new Headers(),
@@ -113,7 +113,7 @@ test("worker caches only verified public shell assets and never substitutes an H
     ((await harness.dispatch("fetch", navigation)) as Response).status,
     401,
   );
-  assert.equal(harness.saved.has("/"), false);
+  assert.equal(harness.saved.has("/demo/"), false);
   for (const request of [
     { ...navigation, url: origin + "/api/private" },
     { ...navigation, url: origin + "/?token=fictional" },
@@ -145,7 +145,7 @@ test("worker fails closed for private, cookie-varying, unmarked and session-sett
     await harness.dispatch("activate");
     assert.equal(harness.saved.size, 0);
     assert.deepEqual(harness.deleted, [
-      "rose-care-shell-v2",
+      "rose-care-demo-v3",
       "rose-care-shell-v1",
     ]);
   }

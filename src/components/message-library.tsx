@@ -79,7 +79,7 @@ export function Messages({
   const needsAdvisor = tokens.includes("conseiller");
   const guideLink =
     needsGuide && guides.some((guide) => guide.id === guideId)
-      ? new URL("/#guides/" + guideId, window.location.origin).href
+      ? new URL("/demo/#guides/" + guideId, window.location.origin).href
       : undefined;
   function clear() {
     setDraft("");

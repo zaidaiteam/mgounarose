@@ -37,6 +37,7 @@
     ".next/dev/types/**/*.ts",
     "next.config.ts",
     "playwright.config.ts",
+    "playwright.supabase.config.ts",
     "tests/**/*.mts",
     "tests/**/*.ts"
   ],

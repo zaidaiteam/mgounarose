@@ -16,8 +16,22 @@ jobs:
   verify:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: rose_care_ci
+          POSTGRES_PASSWORD: fictional-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d rose_care_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     env:
       NEXT_TELEMETRY_DISABLED: "1"
+      ROSE_TEST_POSTGRES_URL: postgres://postgres:fictional-ci-only@127.0.0.1:5432/rose_care_ci
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -35,3 +49,7 @@ jobs:
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+      - uses: supabase/setup-cli@d347ba47d3fb7eeeddbbc793bc8d4779caf773ea # v1.5.0
+        with:
+          version: 2.75.0
+      - run: pnpm test:supabase

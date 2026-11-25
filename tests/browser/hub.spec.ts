@@ -16,7 +16,7 @@ async function navigate(page: Page, name: string) {
 test("multi-item order, COD, callback, failed delivery, return and persisted history", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/demo/");
   await navigate(page, "Commandes");
   await button(page, "Nouvelle commande").click();
   await select(page, "Client fictif").selectOption("c1");
@@ -101,7 +101,7 @@ test("multi-item order, COD, callback, failed delivery, return and persisted his
 test("catalog variants, bundle components, editable guide and filtered universal search", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/demo/");
   const search = page.getByRole("textbox", { name: "Recherche globale" });
   await search.fill("rose essential 20");
   await page
@@ -150,14 +150,14 @@ test("catalog variants, bundle components, editable guide and filtered universal
   await button(page, "Générer le message").click();
   const draft = page.getByRole("textbox", { name: "Brouillon du message" });
   await expect(draft).toHaveValue(
-    /http:\/\/127\.0\.0\.1:3100\/#guides\/[\w-]+/,
+    /http:\/\/127\.0\.0\.1:3100\/demo\/#guides\/[\w-]+/,
   );
 });
 
 test("editable multilingual templates interpolate values and reject contact details", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/demo/");
   await button(page, "RCH-1048").click();
   await button(page, "Préparer un message").click();
   for (const language of ["Français", "Darija", "العربية", "English"]) {
@@ -207,7 +207,7 @@ test("demo data is validated, reset requires confirmation, and layout fits viewp
       '{"customers":[{"name":"External Person","email":"external@example.com"}]}',
     );
   });
-  await page.goto("/");
+  await page.goto("/demo/");
   await expect(page.getByText("Démonstration uniquement.")).toBeVisible();
   await expect(page.getByText(/données locales incompatibles/)).toBeVisible();
   await expect(page.getByText("External Person")).toHaveCount(0);
@@ -253,7 +253,7 @@ test("live routes stay out of the service worker cache and the public demo reloa
   context,
   request,
 }) => {
-  const response = await request.get("/");
+  const response = await request.get("/demo/");
   expect(response.headers()["x-frame-options"]).toBe("DENY");
   expect(response.headers()["x-content-type-options"]).toBe("nosniff");
   expect(response.headers()["content-security-policy"]).toContain(
@@ -267,7 +267,7 @@ test("live routes stay out of the service worker cache and the public demo reloa
     /<meta name="robots" content="[^"]*noindex/,
   );
 
-  await page.goto("/");
+  await page.goto("/demo/");
   await expect
     .poll(() =>
       page.evaluate(() => Boolean(navigator.serviceWorker.controller)),
@@ -278,11 +278,11 @@ test("live routes stay out of the service worker cache and the public demo reloa
     await fetch("/api/private", {
       headers: { Authorization: "Bearer fictional-test" },
     });
-    const cache = await caches.open("rose-care-shell-v2");
+    const cache = await caches.open("rose-care-demo-v3");
     return (await cache.keys()).map((item) => new URL(item.url).pathname);
   });
-  expect(requests).toContain("/offline-demo");
-  expect(requests).not.toContain("/");
+  expect(requests).toContain("/demo/offline");
+  expect(requests).not.toContain("/demo/");
   expect(requests).not.toContain("/api/private");
   await context.setOffline(true);
   await page.reload();

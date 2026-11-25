@@ -31,15 +31,21 @@ const securityHeaders = [
 
 const config: NextConfig = {
   poweredByHeader: false,
+  skipTrailingSlashRedirect: true,
+  experimental: { serverActions: { bodySizeLimit: "64kb" } },
   async headers() {
     return [
-      { source: "/:path*", headers: securityHeaders },
+      { source: "/:path*", headers: securityHeaders.slice(1) },
       {
-        source: "/offline-demo",
-        headers: [{ key: "X-Rose-Offline-Shell", value: "public-demo-v2" }],
+        source: "/:path((?!staff(?:/|$)).*)",
+        headers: securityHeaders.slice(0, 1),
       },
       {
-        source: "/sw.js",
+        source: "/demo/offline",
+        headers: [{ key: "X-Rose-Offline-Shell", value: "public-demo-v3" }],
+      },
+      {
+        source: "/:worker(sw\\.js|demo/sw\\.js)",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
     ];
